@@ -67,6 +67,12 @@ class CalculatorController extends Controller
             ->when($request->product, function ($query) use ($request) {
                 return $query->where('productCode', $request->product);
             })
+            ->when($request->ageRange, function ($query) use ($request) {
+                return $query->where('ageRangeCode', $request->ageRange);
+            })
+            ->when($request->gender, function ($query) use ($request) {
+                return $query->where('gender', $request->gender);
+            })
             ->get();
         return response(['message' => "success", 'data' => $data], 200);
     }
@@ -132,11 +138,11 @@ class CalculatorController extends Controller
 
     public function usebyage($product, $country, $gender)
     {
-        $allproductuse = ReachIncidence::query();
+        // $allproductuse = ReachIncidence::query();
         $filterproduct = ReachIncidence::query();
 
-        $allresult = $allproductuse->selectRaw("Count(ageRangeCode) as totalAgeRange")->first();
-        $filterproduct->selectRaw("Count(ageRangeCode) as ageRangeCount, ageRangeCode")->where('productCode', $product)->with('agerange');
+        // $allresult = $allproductuse->selectRaw("Count(ageRangeCode) as totalAgeRange")->first();
+        $filterproduct->selectRaw("sum(projectedPopulation) as projectedPopulation, sum(connectedPopulation) as connectedPopulation, ageRangeCode")->where('productCode', $product)->with('agerange');
         if (count($country) > 0) {
             $filterproduct->whereIn('countryCode', $country);
         }
@@ -150,7 +156,7 @@ class CalculatorController extends Controller
         if (count($filteredpro) > 0) {
 
             foreach ($filteredpro as $index => &$value) {
-                $value['percentage'] =  round(($value['ageRangeCount'] / $allresult->totalAgeRange) * 100, 2);
+                $value['percentage'] =  round(($value['projectedPopulation'] / $value['connectedPopulation']) * 100, 2);
             }
         }
         return json_encode($filteredpro);
